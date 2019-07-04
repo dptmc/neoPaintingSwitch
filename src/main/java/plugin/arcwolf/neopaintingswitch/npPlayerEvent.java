@@ -24,6 +24,13 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.BlockIterator;
 
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+import com.sk89q.worldguard.protection.ApplicableRegionSet;
+import com.sk89q.worldguard.protection.flags.Flags;
+import com.sk89q.worldguard.protection.regions.RegionQuery;
+
 public class npPlayerEvent implements Listener {
 
     private neoPaintingSwitch plugin;
@@ -45,7 +52,12 @@ public class npPlayerEvent implements Listener {
                 && plugin.worldguard
                 // ... if yes, then check if player can build in any region anyways.
                 && !plugin.hasPermission(player, "worldguard.region.bypass." + player.getWorld().getName().toLowerCase())) {
-            return plugin.wgp.canBuild(player, e.getLocation());
+            RegionQuery query = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery();
+            ApplicableRegionSet set = query.getApplicableRegions(BukkitAdapter.adapt(e.getLocation()));
+            // return plugin.wgp.canBuild(player, e.getLocation());
+            return query.testState(BukkitAdapter.adapt(e.getLocation()), WorldGuardPlugin.inst().wrapPlayer(player), Flags.BUILD) ||
+                    ((set.size() > 0 && set.isOwnerOfAll(plugin.wgp.wrapPlayer(player)))
+                            || set.testState(plugin.wgp.wrapPlayer(player), Flags.BUILD));
         }
         return true;
     }
